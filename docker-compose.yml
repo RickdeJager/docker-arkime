@@ -10,9 +10,6 @@ x-es_instance: &_es_instance
         memlock:
             soft: -1
             hard: -1
-    networks:
-        - arkime-elastic
-
 
 services:
     es01:
@@ -60,22 +57,49 @@ services:
             - $ES_NODE1
             - $ES_NODE2
             - $ES_NODE3
+            - vpn
         environment:
             - ES_HOST=$ES_NODE1
             - ES_PORT=9200
-        ports:
-            - $ARKIME_PORT:8005
         volumes:
             - arkime_config:/data/config
             - arkime_logs:/data/logs
             - $PCAP_DIR:/data/pcap
+        network_mode: "service:vpn"
+
+    vpn:
+        # This container will setup an openvpn connection to the challenge infra.
+        # We'll proxy any containers that need access to the chals through
+        # this network.
+        image: dperson/openvpn-client
+        # cap_add, security_opt, and volume required for the image to function
+        cap_add:
+        - net_admin
         networks:
-            - arkime-elastic
+        - default
+        dns:
+            - 1.1.1.1
+            - 1.0.0.1
+        tmpfs:
+            - /run
+            - /tmp
+        security_opt:
+            - label:disable
+        stdin_open: true
+        tty: true
+        volumes:
+            - /dev/net:/dev/net:z
+            # Put .ovpn configuration file in the /vpn directory
+            - ./vpn:/vpn
+        ports:
+            - 127.0.0.1:$ARKIME_PORT:8005
+        entrypoint:
+            - "/sbin/tini"
+            - "--"
+            - "bash"
+            - "-c"
+            - "(ls /vpn/*.ovpn || sleep infinity) && /usr/bin/openvpn.sh"
 
 volumes:
     arkime_config:
     arkime_logs:
-
-
-networks:
-    arkime-elastic:

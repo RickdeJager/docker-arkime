@@ -1,10 +1,10 @@
 ARG UBUNTU_VERSION=20.04
 FROM ubuntu:$UBUNTU_VERSION
-MAINTAINER mammo0 - https://github.com/mammo0
 
 # Install dependencies that are needed, but not set in the arkime.deb file
 RUN apt-get -qq update && \
-    apt-get install -yq curl libmagic-dev wget logrotate
+    DEBIAN_FRONTEND=noninteractive \
+    apt-get install -yq curl libmagic-dev wget logrotate ssh psmisc net-tools
 
 # Declare args
 ARG ARKIME_VERSION=3.2.1
